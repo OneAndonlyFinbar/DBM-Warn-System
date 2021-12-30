@@ -129,11 +129,7 @@ module.exports = {
             let members = JSON.parse(fs.readFileSync(`./warns/${warnFiles[guildId]}`, 'utf8'));
             for(let member in members){
                 const warns = members[member];
-                for(let warn in warns){
-                    if(warns[warn].id === warnId){
-                        this.storeValue(JSON.stringify(warns[warn]), storage, varName, cache);
-                    }
-                }
+                for(let warn in warns) if(warns[warn].id === warnId) this.storeValue(JSON.stringify(warns[warn]), storage, varName, cache);
             }
         }
 
