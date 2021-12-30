@@ -6,7 +6,7 @@ module.exports = {
     // This is the name of the action displayed in the editor.
     //---------------------------------------------------------------------
 
-    name: "Store Warn Info",
+    name: "Edit Warn Reason",
 
     //---------------------------------------------------------------------
     // Action Section
@@ -23,15 +23,7 @@ module.exports = {
     //---------------------------------------------------------------------
 
     subtitle(data, presets) {
-        const types = [
-            'Warn ID',
-            'Warn Reason',
-            'Warn Date',
-            'Warn Moderator ID',
-            'Warn Member ID',
-            'Warn Guild ID'
-        ];
-        return `${types[parseInt(data.type)]}`;
+        return 'string';
     },
 
     //---------------------------------------------------------------------
@@ -64,7 +56,7 @@ module.exports = {
     // are also the names of the fields stored in the action's JSON data.
     //---------------------------------------------------------------------
 
-    fields: ["warnId", "storage", "varName", "type"],
+    fields: ["warnId", "reason"],
 
     //---------------------------------------------------------------------
     // Command HTML
@@ -88,15 +80,7 @@ module.exports = {
     <div style="...">
         Warn ID or Warn Object:<br>
         <input id="warnId" class="round" type="text"><br><br<br>
-        <select id="type" class="round" style="width: 60%">
-            <option value="0">Warn ID</option>
-            <option value="1">Reason</option>
-            <option value="2">Date</option>
-            <option value="3">Moderator ID</option>
-            <option value="4">Member ID</option>
-            <option value="5">Guild ID</option>
-        </select><br>
-        <store-in-variable dropdownLabel="Store In:" selectId="storage" variableContainerId="varNameContainer3" variableInputId="varName"></store-in-variable>
+        <textarea id="reason" class="round" style="width: 100%; resize: none; height: 200px;" rows="8" cols="19"></textarea><br><br>
     </div>
 </div>`;
     },
@@ -126,7 +110,7 @@ module.exports = {
         const varName = this.evalMessage(data.varName, cache);
         const storage = parseInt(data.storage, 10);
         const warnId = this.evalMessage(data.warnId, cache);
-        const type = data.type;
+        const reason = this.evalMessage(data.reason, cache);
 
         try{
             require('json-simplified');
@@ -146,26 +130,8 @@ module.exports = {
             for(let member in members){
                 const warns = members[member];
                 for(let warn in warns) if(warns[warn].id === warnId) {
-                    switch(type){
-                        case '0':
-                            this.storeValue(warnId, storage, varName, cache);
-                            break;
-                        case '1':
-                            this.storeValue(warns[warn].reason, storage, varName, cache);
-                            break;
-                        case '2':
-                            this.storeValue(warns[warn].date, storage, varName, cache);
-                            break;
-                        case '3':
-                            this.storeValue(warns[warn].moderator, storage, varName, cache);
-                            break;
-                        case '4':
-                            this.storeValue(warns[warn].member, storage, varName, cache);
-                            break;
-                        case '5':
-                            this.storeValue(warns[warn].guild, storage, varName, cache);
-                            break;
-                    }
+                    warns[warn].reason = reason;
+                    fs.writeFileSync(`./warns/${warnFiles[guildId]}`, JSON.stringify(members));
                 }
             }
         }
