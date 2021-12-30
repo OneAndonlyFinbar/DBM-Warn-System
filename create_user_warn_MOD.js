@@ -199,7 +199,7 @@ module.exports = {
             }
 
             const id = await generateId();
-            const warn = { id: id, reason: reason, date: new Date().getTime(), issuer: cache.msg.author.id };
+            const warn = { id: id, reason: reason, date: new Date().getTime(), issuer: cache.msg.author.id, member: member };
 
             warns.push(warn);
             await db.set(member, warns);

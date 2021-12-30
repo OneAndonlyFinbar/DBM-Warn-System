@@ -56,7 +56,7 @@ module.exports = {
     // are also the names of the fields stored in the action's JSON data.
     //---------------------------------------------------------------------
 
-    fields: ["server", "serverStorage", "member", "memberStorage", "storage", "varName"],
+    fields: ["warnId", "storage", "varName"],
 
     //---------------------------------------------------------------------
     // Command HTML
@@ -78,9 +78,9 @@ module.exports = {
         <a href="#" onclick="require('child_process').execSync('start https://ko-fi.com/thefinbar')">Support me</a></p>
     </div><br>
     <div style="...">
-        <server-input dropdownLabel="Source Server" selectId="server" variableContainerId="varNameContainer" variableInputId="serverStorage"></server-input><br><br><br><br>
-        <member-input dropdownLabel="Source Member" selectId="member" variableContainerId="varNameContainer2" variableInputId="memberStorage"></member-input><br><br><br><br>
-        <store-in-variable dropdownLabel="Store In" selectId="storage" variableContainerId="varNameContainer3" variableInputId="varName"></store-in-variable>
+        Warn ID:<br>
+        <input id="warnId" class="round" type="text"><br><br<br>
+        <store-in-variable dropdownLabel="Store In:" selectId="storage" variableContainerId="varNameContainer3" variableInputId="varName"></store-in-variable>
     </div>
 </div>`;
     },
@@ -109,8 +109,7 @@ module.exports = {
         const data = cache.actions[cache.index];
         const varName = this.evalMessage(data.varName, cache);
         const storage = parseInt(data.storage, 10);
-        const guild = this.evalMessage(data.serverStorage, cache);
-        const member = this.evalMessage(data.memberStorage, cache);
+        const warnId = this.evalMessage(data.warnId, cache);
 
         try{
             require('json-simplified');
@@ -119,24 +118,26 @@ module.exports = {
             return this.callNextAction(cache);
         }
 
-        if(guild?.length === 0 || !guild){
-            console.log('WarnManagerError: Invalid guild.');
-            return this.callNextAction(cache);
-        }
-
         const { Database } = require('json-simplified');
         const fs = require('fs');
 
         if(!fs.existsSync('./warns')) fs.mkdirSync('./warns');
 
-        const db = new Database(guild, {registry: './warns'});
-
-        if(member){
-            let parsed = [];
-            let warns = await db.get(member);
-            warns.forEach(warn => parsed.push(JSON.stringify(warn)));
-            this.storeValue(parsed, storage, varName, cache);
+        //I had at least 3 aneurysms programming this bs
+        const warnFiles = fs.readdirSync('./warns');
+        for(const guildId in warnFiles){
+            let members = JSON.parse(fs.readFileSync(`./warns/${warnFiles[guildId]}`, 'utf8'));
+            for(let member in members){
+                const warns = members[member];
+                for(let warn in warns){
+                    if(warns[warn].id === warnId){
+                        this.storeValue(JSON.stringify(warns[warn]), storage, varName, cache);
+                        console.log('FCKING MATCH NIGGA');
+                    }
+                }
+            }
         }
+
         this.callNextAction(cache);
     },
 
