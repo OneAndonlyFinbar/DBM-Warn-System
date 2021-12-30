@@ -6,7 +6,7 @@ module.exports = {
     // This is the name of the action displayed in the editor.
     //---------------------------------------------------------------------
 
-    name: "Create User Warn",
+    name: "Store Warn Info",
 
     //---------------------------------------------------------------------
     // Action Section
@@ -23,64 +23,15 @@ module.exports = {
     //---------------------------------------------------------------------
 
     subtitle(data, presets) {
-        let server;
-        let member;
-        switch(parseInt(data.server, 10)){
-            case 0:
-                server = 'Current Server';
-                break;
-            case 1:
-                server = 'Temp Variable';
-                break;
-            case 2:
-                server = 'Server Variable';
-                break;
-            case 3:
-                server = 'Global Variable';
-                break;
-            case 100:
-                server = 'Server (by Name)';
-                break;
-            case 101:
-                server = 'Server (by ID)';
-                break;
-            default:
-                server = 'none';
-                break;
-        }
-        switch(parseInt(data.member, 10)){
-            case 0:
-                member = 'Mentioned User';
-                break;
-            case 1:
-                member = 'Command User';
-                break;
-            case 2:
-                member = 'Temp Variable';
-                break;
-            case 3:
-                member = 'Server Variable';
-                break;
-            case 4:
-                member = 'Global Variable';
-                break;
-            case 5:
-                member = 'Slash Command Parameter';
-                break;
-            case 6:
-                member = 'Interacted User';
-                break;
-            case 100:
-                member = 'User (by Name)';
-                break;
-            case 101:
-                member = 'User (by ID)';
-                break;
-            default:
-                member = 'None';
-                break;
-        }
-        return `${server} - ${member}`;
+        const types = [
+            'Warn ID',
+            'Warn Reason',
+            'Warn Date',
+            'Warn Moderator ID',
+            'Warn Member ID',
+            'Warn Guild ID'
+        ];
+        return `${types[parseInt(data.type)]}`;
     },
 
     //---------------------------------------------------------------------
@@ -113,7 +64,7 @@ module.exports = {
     // are also the names of the fields stored in the action's JSON data.
     //---------------------------------------------------------------------
 
-    fields: ["server", "serverStorage", "member", "memberStorage", "reason", "storage", "varName"],
+    fields: ["warnId", "storage", "varName", "type"],
 
     //---------------------------------------------------------------------
     // Command HTML
@@ -135,11 +86,17 @@ module.exports = {
         <a href="#" onclick="require('child_process').execSync('start https://ko-fi.com/thefinbar')">Support me</a></p>
     </div><br>
     <div style="...">
-        <server-input dropdownLabel="Source Server" selectId="server" variableContainerId="varNameContainer" variableInputId="serverStorage"></server-input><br><br><br><br>
-        <member-input dropdownLabel="Source Member" selectId="member" variableContainerId="varNameContainer2" variableInputId="memberStorage"></member-input><br><br><br><br>
-        Reason:<br>
-        <textarea id="reason" class="round" style="width: 100%; resize: none; height: 200px;" rows="8" cols="19"></textarea><br><br>
-        <store-in-variable dropdownLabel="Store In" selectId="storage" variableContainerId="varNameContainer3" variableInputId="varName"></store-in-variable>
+        Warn ID:<br>
+        <input id="warnId" class="round" type="text"><br><br<br>
+        <select id="type" class="round" style="width: 60%">
+            <option value="0">Warn ID</option>
+            <option value="1">Reason</option>
+            <option value="2">Date</option>
+            <option value="3">Moderator ID</option>
+            <option value="4">Member ID</option>
+            <option value="5">Guild ID</option>
+        </select><br>
+        <store-in-variable dropdownLabel="Store In:" selectId="storage" variableContainerId="varNameContainer3" variableInputId="varName"></store-in-variable>
     </div>
 </div>`;
     },
@@ -168,9 +125,8 @@ module.exports = {
         const data = cache.actions[cache.index];
         const varName = this.evalMessage(data.varName, cache);
         const storage = parseInt(data.storage, 10);
-        const guild = this.evalMessage(data.serverStorage, cache);
-        const member = this.evalMessage(data.memberStorage, cache);
-        const reason = this.evalMessage(data.reason, cache);
+        const warnId = this.evalMessage(data.warnId, cache);
+        const type = data.type;
 
         try{
             require('json-simplified');
@@ -179,58 +135,42 @@ module.exports = {
             return this.callNextAction(cache);
         }
 
-        if(guild?.length === 0 || !guild){
-            console.log('WarnManagerError: Invalid guild.');
-            return this.callNextAction(cache);
-        }
-
         const { Database } = require('json-simplified');
         const fs = require('fs');
 
         if(!fs.existsSync('./warns')) fs.mkdirSync('./warns');
 
-        const db = new Database(guild, {registry: './warns'});
-
-        if(member){
-            let warns = await db.get(member);
-            if(!warns){
-                await db.set(member, []);
-                warns = [];
-            }
-
-            const id = await generateId();
-            const warn = { id: id, reason: reason, date: new Date().getTime(), issuer: cache.msg.author.id, member: member, guild: cache.msg.guild.id };
-
-            warns.push(warn);
-            await db.set(member, warns);
-            this.storeValue(id, storage, varName, cache);
-        }
-        this.callNextAction(cache);
-
-        async function generateId(){
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let id = '';
-            for(let i = 0; i < 4;i++){
-                for(let i = 0; i < 4; i++){
-                    id += characters.charAt(Math.floor(Math.random() * characters.length));
-                }
-                if(i < 3) id += '-';
-            }
-
-            const fs = require('fs');
-
-            //I had at least 3 aneurysms programming this bs
-            const warnFiles = fs.readdirSync('./warns');
-            for(const guildId in warnFiles){
-                let members = JSON.parse(fs.readFileSync(`./warns/${warnFiles[guildId]}`, 'utf8'));
-                for(let member in members){
-                    for(let warn of member){
-                        if(warn.id === id) return await generateId();
+        const warnFiles = fs.readdirSync('./warns');
+        for(const guildId in warnFiles){
+            let members = JSON.parse(fs.readFileSync(`./warns/${warnFiles[guildId]}`, 'utf8'));
+            for(let member in members){
+                const warns = members[member];
+                for(let warn in warns) if(warns[warn].id === warnId) {
+                    switch(type){
+                        case '0':
+                            this.storeValue(warnId, storage, varName, cache);
+                            break;
+                        case '1':
+                            this.storeValue(warns[warn].reason, storage, varName, cache);
+                            break;
+                        case '2':
+                            this.storeValue(warns[warn].date, storage, varName, cache);
+                            break;
+                        case '3':
+                            this.storeValue(warns[warn].moderator, storage, varName, cache);
+                            break;
+                        case '4':
+                            this.storeValue(warns[warn].member, storage, varName, cache);
+                            break;
+                        case '5':
+                            this.storeValue(warns[warn].guild, storage, varName, cache);
+                            break;
                     }
                 }
             }
-            return id;
         }
+
+        this.callNextAction(cache);
     },
 
     //---------------------------------------------------------------------

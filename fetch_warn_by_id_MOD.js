@@ -23,7 +23,7 @@ module.exports = {
     //---------------------------------------------------------------------
 
     subtitle(data, presets) {
-        return 'string';
+        return data.warnId ?? '';
     },
 
     //---------------------------------------------------------------------
@@ -123,7 +123,6 @@ module.exports = {
 
         if(!fs.existsSync('./warns')) fs.mkdirSync('./warns');
 
-        //I had at least 3 aneurysms programming this bs
         const warnFiles = fs.readdirSync('./warns');
         for(const guildId in warnFiles){
             let members = JSON.parse(fs.readFileSync(`./warns/${warnFiles[guildId]}`, 'utf8'));
