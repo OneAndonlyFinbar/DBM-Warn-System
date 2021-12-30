@@ -132,7 +132,6 @@ module.exports = {
                 for(let warn in warns){
                     if(warns[warn].id === warnId){
                         this.storeValue(JSON.stringify(warns[warn]), storage, varName, cache);
-                        console.log('FCKING MATCH NIGGA');
                     }
                 }
             }
